@@ -1,0 +1,6 @@
+Makefile
+minesweeper
+.cache
+compile_commands.json
+lib/
+include/
