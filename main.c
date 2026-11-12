@@ -17,8 +17,6 @@ Color aged_gold = {197, 155, 39, 255};
 Color tarnished_steel = {112, 120, 128, 255};
 
 typedef struct {
-  int posx;
-  int posy;
   int isMine;
   int isRevealed;
   int isFlagged;
@@ -32,18 +30,91 @@ int min2(int a, int b) {
     return b;
   }
 }
-int generateRandomBombsList(int start, int end, int avoid) {
-
-  return 0;
-  return (rand() % (end - start + 1)) + start;
-}
-/*int isInArray(int num, int arr[], int len) {
+int isInArray(int num, int arr[], int len) {
   for (int i = 0; i < len; ++i) {
-    if () {
+    if (arr[i] == num) {
+      return 1;
     }
   }
+  return 0;
 }
-*/
+int *generateRandomBombsIndexessList(int totalCells, int avoid, int quantity) {
+  int counter = 0;
+  int *indexes = malloc(sizeof(int) * quantity);
+  if (indexes == NULL) {
+    return NULL;
+  }
+  while (counter < quantity) {
+    int temp = rand() % totalCells;
+    if (temp != avoid && !isInArray(temp, indexes, counter)) {
+      indexes[counter] = temp;
+      ++counter;
+    }
+  }
+  return indexes;
+}
+int countMinesAroundTile(Tile *tiles, int x, int y, int gridsizex,
+                         int gridsizey) {
+  int minesAround = 0;
+  for (int dx = -1; dx <= 1; ++dx) {
+    for (int dy = -1; dy <= 1; ++dy) {
+      if (dx == 0 && dy == 0)
+        continue;
+      int actualX = x + dx;
+      int actualY = y + dy;
+      if (actualX < gridsizex && actualY < gridsizey && actualX >= 0 &&
+          actualY >= 0) {
+        int index = gridsizex * actualY + actualX;
+        if (tiles[index].isMine) {
+          ++minesAround;
+        }
+      }
+    }
+  }
+  return minesAround;
+}
+void placeMines(Tile *tiles, int totalCells, int firstClickIndex, int bombs) {
+  int *bombIndexes =
+      generateRandomBombsIndexessList(totalCells, firstClickIndex, bombs);
+  if (bombIndexes != NULL) {
+    for (int i = 0; i < bombs; ++i) {
+      tiles[bombIndexes[i]].isMine = 1;
+    }
+    free(bombIndexes);
+  }
+}
+Tile *initEmptyTiles(int totalCells) {
+  Tile *tiles = malloc(sizeof(Tile) * totalCells);
+  if (tiles == NULL) {
+    return NULL;
+  }
+  for (int i = 0; i < totalCells; ++i) {
+    tiles[i].isMine = 0;
+    tiles[i].isFlagged = 0;
+    tiles[i].isRevealed = 0;
+    tiles[i].neighboursMines = 0;
+  }
+  return tiles;
+}
+Tile *generateTilesStructList(int horizontal, int vertical, int bombs,
+                              int firstClickIndex) {
+  // generate empty Tile type list
+  Tile *tiles = initEmptyTiles(horizontal * vertical);
+  // place mines at random indexes
+  placeMines(tiles, horizontal * vertical, firstClickIndex, bombs);
+  // count neighbours
+  for (int y = 0; y < vertical; ++y) {
+    for (int x = 0; x < horizontal; ++x) {
+      int index = y * horizontal + x;
+      if (!tiles[index].isMine) {
+        tiles[index].neighboursMines =
+            countMinesAroundTile(tiles, x, y, horizontal, vertical);
+      }
+    }
+  }
+  return tiles;
+}
+void drawTiles(int horizontal, int vertical, int bombs) { return; }
 void drawWindow() {
   SetConfigFlags(FLAG_WINDOW_HIGHDPI);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -94,8 +165,6 @@ int main() {
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(parchment_cream);
-    // int topMargin = 2 * 100;
-    // int leftMargin = 2 * 100;
     drawMinesweeperGrid(9, 9);
     EndDrawing();
   }
