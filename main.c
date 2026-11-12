@@ -23,13 +23,6 @@ typedef struct {
   int neighboursMines;
 } Tile;
 
-int min2(int a, int b) {
-  if (a < b) {
-    return a;
-  } else {
-    return b;
-  }
-}
 int isInArray(int num, int arr[], int len) {
   for (int i = 0; i < len; ++i) {
     if (arr[i] == num) {
@@ -114,7 +107,7 @@ Tile *generateTilesStructList(int horizontal, int vertical, int bombs,
   }
   return tiles;
 }
-void drawTiles(int horizontal, int vertical, int bombs) { return; }
+
 void drawWindow() {
   SetConfigFlags(FLAG_WINDOW_HIGHDPI);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -152,20 +145,85 @@ void drawMinesweeperGrid(int gridSizex, int gridSizey) {
       int ver = y * cubeSize;
       DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
                          GRAY);
-      DrawText(TextFormat("%d", i + 1), leftMargin + hor + 2, topMargin + ver,
-               10, BLACK);
-      i += 1;
     }
   }
 }
+void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
+  int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
 
+  int minMargin = 50;
+  int availableWidth = screenWidth - (2 * minMargin);
+  int availableHeight = screenHeight - (2 * minMargin);
+
+  // Calculate size of square
+  int cubeWidth = availableWidth / gridSizex;
+  int cubeHeight = availableHeight / gridSizey;
+  int cubeSize = (cubeWidth < cubeHeight) ? cubeWidth : cubeHeight;
+
+  // Calculate size of grid
+  int totalGridWidth = cubeSize * gridSizex;
+  int totalGridHeight = cubeSize * gridSizey;
+
+  // Center the grid in the window
+  int leftMargin = (screenWidth - totalGridWidth) / 2;
+  int topMargin = 5 * (screenHeight - totalGridHeight) / 6;
+
+  int i = 0;
+
+  if (tiles == NULL) {
+    return
+  }
+
+  for (int y = 0; y < gridSizey; ++y) {
+    for (int x = 0; x < gridSizex; ++x) {
+      int hor = x * cubeSize;
+      int ver = y * cubeSize;
+      int posX = leftMargin + hor;
+      int posY = topMargin + ver;
+      int fontSize = cubeSize / 2;
+
+      if (tiles[i].isFlagged) {
+        const char *txt = "Flag";
+        int textWidth = MeasureText(txt, fontSize);
+        DrawText(txt, posX + (cubeSize - textWidth) / 2,
+                 posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+      }
+      if (tiles[i].isRevealed && tiles[i].isMine) {
+        const char *txt = "BOMB";
+        int textWidth = MeasureText(txt, fontSize);
+        DrawText(txt, posX + (cubeSize - textWidth) / 2,
+                 posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+      }
+      if (tiles[i].isRevealed && tiles[i].neighboursMines > 0) {
+        const char *txt = TextFormat("%d", tiles[i].neighboursMines);
+        int textWidth = MeasureText(txt, fontSize);
+        DrawText(txt, posX + (cubeSize - textWidth) / 2,
+                 posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+      }
+      ++i;
+    }
+  }
+}
+void renderStartMenu(int *horizontal, int *vertical, int *bombs) {
+  *horizontal = 9;
+  *vertical = 9;
+  *bombs = 10;
+}
 int main() {
+  srand(time(NULL));
   drawWindow();
   windowInfo();
+  int firstClickIndex = 5;
+  int horizontalTiles, verticalTiles, bombs;
+  renderStartMenu(&horizontalTiles, &verticalTiles, &bombs);
+  Tile *tiles = generateTilesStructList(horizontalTiles, verticalTiles, bombs,
+                                        firstClickIndex);
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(parchment_cream);
-    drawMinesweeperGrid(9, 9);
+    drawMinesweeperGrid(horizontalTiles, verticalTiles);
+    drawTiles(tiles, horizontalTiles, verticalTiles, bombs);
     EndDrawing();
   }
 
