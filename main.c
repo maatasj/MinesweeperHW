@@ -22,7 +22,7 @@ typedef struct {
   int isFlagged;
   int neighboursMines;
 } Tile;
-
+Vector2 click;
 int isInArray(int num, int arr[], int len) {
   for (int i = 0; i < len; ++i) {
     if (arr[i] == num) {
@@ -105,6 +105,7 @@ Tile *generateTilesStructList(int horizontal, int vertical, int bombs,
       }
     }
   }
+  tiles[firstClickIndex].isRevealed = 1;
   return tiles;
 }
 
@@ -144,7 +145,7 @@ void drawMinesweeperGrid(int gridSizex, int gridSizey) {
       int hor = x * cubeSize;
       int ver = y * cubeSize;
       DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
-                         GRAY);
+                         BLACK);
     }
   }
 }
@@ -172,7 +173,7 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
   int i = 0;
 
   if (tiles == NULL) {
-    return
+    return;
   }
 
   for (int y = 0; y < gridSizey; ++y) {
@@ -186,20 +187,43 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
       if (tiles[i].isFlagged) {
         const char *txt = "Flag";
         int textWidth = MeasureText(txt, fontSize);
+        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
+                      DARKGRAY);
+
+        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
+                           cubeSize, BLACK);
         DrawText(txt, posX + (cubeSize - textWidth) / 2,
                  posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
       }
       if (tiles[i].isRevealed && tiles[i].isMine) {
         const char *txt = "BOMB";
-        int textWidth = MeasureText(txt, fontSize);
+        int textWidth = MeasureText(txt, fontSize / 2);
+        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
+                      DARKGRAY);
+
+        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
+                           cubeSize, BLACK);
         DrawText(txt, posX + (cubeSize - textWidth) / 2,
-                 posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+                 posY + (cubeSize - fontSize / 2) / 2, fontSize / 2, BLACK);
       }
       if (tiles[i].isRevealed && tiles[i].neighboursMines > 0) {
         const char *txt = TextFormat("%d", tiles[i].neighboursMines);
         int textWidth = MeasureText(txt, fontSize);
+        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
+                      DARKGRAY);
+
+        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
+                           cubeSize, BLACK);
         DrawText(txt, posX + (cubeSize - textWidth) / 2,
                  posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+      }
+      if (tiles[i].isRevealed && tiles[i].neighboursMines == 0 &&
+          tiles[i].isMine == 0 && tiles[i].isFlagged == 0) {
+
+        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
+                      DARKGRAY);
+        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
+                           cubeSize, BLACK);
       }
       ++i;
     }
@@ -210,23 +234,108 @@ void renderStartMenu(int *horizontal, int *vertical, int *bombs) {
   *vertical = 9;
   *bombs = 10;
 }
+int mouseClickToIndex(Vector2 click, int gridSizex, int gridSizey) {
+  int x = click.x;
+  int y = click.y;
+  int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
+
+  int minMargin = 50;
+  int availableWidth = screenWidth - (2 * minMargin);
+  int availableHeight = screenHeight - (2 * minMargin);
+
+  // Calculate size of square
+  int cubeWidth = availableWidth / gridSizex;
+  int cubeHeight = availableHeight / gridSizey;
+  int cubeSize = (cubeWidth < cubeHeight) ? cubeWidth : cubeHeight;
+
+  // Calculate size of grid
+  int totalGridWidth = cubeSize * gridSizex;
+  int totalGridHeight = cubeSize * gridSizey;
+
+  // Center the grid in the window
+  int leftMargin = (screenWidth - totalGridWidth) / 2;
+  int topMargin = 5 * (screenHeight - totalGridHeight) / 6;
+  if (x < leftMargin || x > totalGridWidth + leftMargin || y < topMargin ||
+      y > topMargin + totalGridHeight) {
+    return -1;
+  }
+  x = (int)(x - leftMargin) / cubeSize;
+  y = (int)(y - topMargin) / cubeSize;
+  return ((y * gridSizex) + x);
+}
+void revealEmptyTiles(Tile *tiles, int x, int y, int gridSizex, int gridSizey) {
+  int index = (y * gridSizex) + x;
+  if (x < 0 || x >= gridSizex || y < 0 || y >= gridSizey) {
+    return;
+  }
+  if (tiles[index].isRevealed || tiles[index].isFlagged) {
+    return;
+  }
+  tiles[index].isRevealed = 1;
+  if (tiles[index].neighboursMines > 0) {
+    return;
+  }
+  for (int dy = -1; dy <= 1; ++dy) {
+    for (int dx = -1; dx <= 1; ++dx) {
+      if (dx == 0 && dy == 0)
+        continue;
+      revealEmptyTiles(tiles, x + dx, y + dy, gridSizex, gridSizey);
+    }
+  }
+}
+
+/*revealEmptyTiles(tiles, clickX, clickY, horizontalTiles,
+                           verticalTiles);   <------cia pabaigiau reik kad
+   zodziu pirmas visad 0 butu ir reveaintu*/
 int main() {
   srand(time(NULL));
   drawWindow();
   windowInfo();
-  int firstClickIndex = 5;
+  int firstClickIndex = -1;
   int horizontalTiles, verticalTiles, bombs;
   renderStartMenu(&horizontalTiles, &verticalTiles, &bombs);
-  Tile *tiles = generateTilesStructList(horizontalTiles, verticalTiles, bombs,
-                                        firstClickIndex);
+  Tile *tiles = NULL;
   while (!WindowShouldClose()) {
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+      click = GetMousePosition();
+      int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
+      if (firstClickIndex == -1 && clickIndex != -1) {
+        firstClickIndex = clickIndex;
+        tiles = generateTilesStructList(horizontalTiles, verticalTiles, bombs,
+                                        firstClickIndex);
+        if (tiles != NULL) {
+          tiles[firstClickIndex].isRevealed = 1;
+        }
+      }
+
+      if (clickIndex != -1 && firstClickIndex != -1) {
+        if (tiles[clickIndex].neighboursMines == 0 &&
+            tiles[clickIndex].isMine == 0) {
+          int clickX = clickIndex % horizontalTiles;
+          int clickY = clickIndex / horizontalTiles;
+          revealEmptyTiles(tiles, clickX, clickY, horizontalTiles,
+                           verticalTiles);
+        } else {
+          tiles[clickIndex].isRevealed = 1;
+        }
+      }
+    }
+    if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+      click = GetMousePosition();
+      int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
+      if (clickIndex != -1 && tiles[clickIndex].isRevealed == 0) {
+
+        tiles[clickIndex].isFlagged = !tiles[clickIndex].isFlagged;
+      }
+    }
     BeginDrawing();
-    ClearBackground(parchment_cream);
+    ClearBackground(GRAY);
     drawMinesweeperGrid(horizontalTiles, verticalTiles);
     drawTiles(tiles, horizontalTiles, verticalTiles, bombs);
     EndDrawing();
   }
-
+  free(tiles);
   CloseWindow();
   return 0;
 }
