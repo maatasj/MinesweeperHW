@@ -242,9 +242,9 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
   }
 }
 void renderStartMenu(int *horizontal, int *vertical, int *bombs) {
-  *horizontal = 30;
-  *vertical = 16;
-  *bombs = 99;
+  *horizontal = 9;
+  *vertical = 9;
+  *bombs = 10;
 }
 int mouseClickToIndex(Vector2 click, int gridSizex, int gridSizey) {
   int x = click.x;
@@ -338,12 +338,9 @@ Tile *HandleInput(int *firstClickIndex, Tile *tiles, int horizontalTiles,
   }
   return tiles;
 }
-int main() {
-  srand(time(NULL));
-  drawWindow();
+void MinesweeperGame(int horizontalTiles, int verticalTiles, int bombs) {
   int firstClickIndex = -1;
-  int horizontalTiles, verticalTiles, bombs;
-  renderStartMenu(&horizontalTiles, &verticalTiles, &bombs);
+
   Tile *tiles = NULL;
   while (!WindowShouldClose()) {
     tiles = HandleInput(&firstClickIndex, tiles, horizontalTiles, verticalTiles,
@@ -355,6 +352,12 @@ int main() {
     EndDrawing();
   }
   free(tiles);
+}
+int main() {
+  srand(time(NULL));
+  drawWindow();
+  MinesweeperGame(9, 9, 10);
+
   CloseWindow();
   return 0;
 }
