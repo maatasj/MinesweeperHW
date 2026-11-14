@@ -117,7 +117,7 @@ Tile *generateTilesStructList(int horizontal, int vertical, int bombs,
       }
     }
   }
-  tiles[firstClickIndex].isRevealed = 1;
+  // tiles[firstClickIndex].isRevealed = 1;
   return tiles;
 }
 
@@ -297,28 +297,26 @@ void revealEmptyTiles(Tile *tiles, int x, int y, int gridSizex, int gridSizey) {
     }
   }
 }
+Tile *HandleInput(int *firstClickIndex, Tile *tiles, int horizontalTiles,
+                  int verticalTiles, int bombs) {
+  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+    click = GetMousePosition();
+    int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
+    // checks if not out of bounds
+    if (clickIndex != -1) {
 
-int main() {
-  srand(time(NULL));
-  drawWindow();
-  int firstClickIndex = -1;
-  int horizontalTiles, verticalTiles, bombs;
-  renderStartMenu(&horizontalTiles, &verticalTiles, &bombs);
-  Tile *tiles = NULL;
-  while (!WindowShouldClose()) {
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-      click = GetMousePosition();
-      int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
-      if (firstClickIndex == -1 && clickIndex != -1) {
-        firstClickIndex = clickIndex;
+      if (*firstClickIndex == -1) {
+        // handle first click
+        *firstClickIndex = clickIndex;
         tiles = generateTilesStructList(horizontalTiles, verticalTiles, bombs,
-                                        firstClickIndex);
+                                        *firstClickIndex);
         if (tiles != NULL) {
-          tiles[firstClickIndex].isRevealed = 1;
+          int tempX = clickIndex % horizontalTiles;
+          int tempY = clickIndex / horizontalTiles;
+          revealEmptyTiles(tiles, tempX, tempY, horizontalTiles, verticalTiles);
         }
-      }
-
-      if (clickIndex != -1 && firstClickIndex != -1) {
+      } else {
+        // Handle subsequent clicks
         if (tiles[clickIndex].neighboursMines == 0 &&
             tiles[clickIndex].isMine == 0) {
           int clickX = clickIndex % horizontalTiles;
@@ -330,14 +328,26 @@ int main() {
         }
       }
     }
-    if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-      click = GetMousePosition();
-      int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
-      if (clickIndex != -1 && tiles[clickIndex].isRevealed == 0) {
-
-        tiles[clickIndex].isFlagged = !tiles[clickIndex].isFlagged;
-      }
+  }
+  if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+    click = GetMousePosition();
+    int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
+    if (clickIndex != -1 && tiles[clickIndex].isRevealed == 0) {
+      tiles[clickIndex].isFlagged = !tiles[clickIndex].isFlagged;
     }
+  }
+  return tiles;
+}
+int main() {
+  srand(time(NULL));
+  drawWindow();
+  int firstClickIndex = -1;
+  int horizontalTiles, verticalTiles, bombs;
+  renderStartMenu(&horizontalTiles, &verticalTiles, &bombs);
+  Tile *tiles = NULL;
+  while (!WindowShouldClose()) {
+    tiles = HandleInput(&firstClickIndex, tiles, horizontalTiles, verticalTiles,
+                        bombs);
     BeginDrawing();
     ClearBackground(GRAY);
     drawMinesweeperGrid(horizontalTiles, verticalTiles);
