@@ -31,7 +31,11 @@ int isInArray(int num, int arr[], int len) {
   }
   return 0;
 }
-int *generateRandomBombsIndexessList(int totalCells, int avoid, int quantity) {
+int *generateRandomBombsIndexessList(int horizontal, int vertical, int avoid,
+                                     int quantity, int firstClickIndex) {
+  int totalCells = horizontal * vertical;
+  int firstX = firstClickIndex % horizontal;
+  int firstY = firstClickIndex / horizontal;
   int counter = 0;
   int *indexes = malloc(sizeof(int) * quantity);
   if (indexes == NULL) {
@@ -39,9 +43,14 @@ int *generateRandomBombsIndexessList(int totalCells, int avoid, int quantity) {
   }
   while (counter < quantity) {
     int temp = rand() % totalCells;
+    int randX = temp % horizontal;
+    int randY = temp / horizontal;
+
     if (temp != avoid && !isInArray(temp, indexes, counter)) {
-      indexes[counter] = temp;
-      ++counter;
+      if (abs(randX - firstX) > 1 && (abs(randY - firstY) > 1)) {
+        indexes[counter] = temp;
+        ++counter;
+      }
     }
   }
   return indexes;
@@ -66,9 +75,11 @@ int countMinesAroundTile(Tile *tiles, int x, int y, int gridsizex,
   }
   return minesAround;
 }
-void placeMines(Tile *tiles, int totalCells, int firstClickIndex, int bombs) {
-  int *bombIndexes =
-      generateRandomBombsIndexessList(totalCells, firstClickIndex, bombs);
+void placeMines(Tile *tiles, int horizontal, int vertical, int firstClickIndex,
+                int bombs) {
+
+  int *bombIndexes = generateRandomBombsIndexessList(
+      horizontal, vertical, firstClickIndex, bombs, firstClickIndex);
   if (bombIndexes != NULL) {
     for (int i = 0; i < bombs; ++i) {
       tiles[bombIndexes[i]].isMine = 1;
@@ -94,7 +105,8 @@ Tile *generateTilesStructList(int horizontal, int vertical, int bombs,
   // generate empty Tile type list
   Tile *tiles = initEmptyTiles(horizontal * vertical);
   // place mines at random indexes
-  placeMines(tiles, horizontal * vertical, firstClickIndex, bombs);
+  tiles[firstClickIndex].neighboursMines = 0;
+  placeMines(tiles, horizontal, vertical, firstClickIndex, bombs);
   // count neighbours
   for (int y = 0; y < vertical; ++y) {
     for (int x = 0; x < horizontal; ++x) {
@@ -230,9 +242,9 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
   }
 }
 void renderStartMenu(int *horizontal, int *vertical, int *bombs) {
-  *horizontal = 9;
-  *vertical = 9;
-  *bombs = 10;
+  *horizontal = 30;
+  *vertical = 16;
+  *bombs = 99;
 }
 int mouseClickToIndex(Vector2 click, int gridSizex, int gridSizey) {
   int x = click.x;
@@ -269,6 +281,7 @@ void revealEmptyTiles(Tile *tiles, int x, int y, int gridSizex, int gridSizey) {
   if (x < 0 || x >= gridSizex || y < 0 || y >= gridSizey) {
     return;
   }
+
   if (tiles[index].isRevealed || tiles[index].isFlagged) {
     return;
   }
@@ -285,13 +298,9 @@ void revealEmptyTiles(Tile *tiles, int x, int y, int gridSizex, int gridSizey) {
   }
 }
 
-/*revealEmptyTiles(tiles, clickX, clickY, horizontalTiles,
-                           verticalTiles);   <------cia pabaigiau reik kad
-   zodziu pirmas visad 0 butu ir reveaintu*/
 int main() {
   srand(time(NULL));
   drawWindow();
-  windowInfo();
   int firstClickIndex = -1;
   int horizontalTiles, verticalTiles, bombs;
   renderStartMenu(&horizontalTiles, &verticalTiles, &bombs);
@@ -338,26 +347,4 @@ int main() {
   free(tiles);
   CloseWindow();
   return 0;
-}
-
-// will be deleted in the future
-void windowInfo() {
-  int cubeWidth = GetScreenWidth();
-  int monitorWidth = GetMonitorWidth(0);
-  int cubeHeight = GetScreenHeight();
-  int monitorHeight = GetMonitorHeight(0);
-  printf("Screen Width: %d\n", cubeWidth);
-  printf("Monitor Width: %d -- %d\n", monitorWidth, monitorWidth * 4 / 5);
-  printf("Screen Height: %d\n", cubeHeight);
-  printf("Monitor Height: %d -- %d\n", monitorHeight, monitorHeight * 4 / 5);
-  printf("After changes:\n");
-  SetWindowSize(monitorWidth * 4 / 5, monitorHeight * 4 / 5);
-  cubeWidth = GetScreenWidth();
-  monitorWidth = GetMonitorWidth(0);
-  cubeHeight = GetScreenHeight();
-  monitorHeight = GetMonitorHeight(0);
-  printf("Screen Width: %d\n", cubeWidth);
-  printf("Monitor Width: %d -- %d\n", monitorWidth, monitorWidth * 4 / 5);
-  printf("Screen Height: %d\n", cubeHeight);
-  printf("Monitor Height: %d -- %d\n", monitorHeight, monitorHeight * 4 / 5);
 }
