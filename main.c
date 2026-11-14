@@ -23,6 +23,7 @@ typedef struct {
   int neighboursMines;
 } Tile;
 Vector2 click;
+
 int isInArray(int num, int arr[], int len) {
   for (int i = 0; i < len; ++i) {
     if (arr[i] == num) {
@@ -120,7 +121,6 @@ Tile *generateTilesStructList(int horizontal, int vertical, int bombs,
   // tiles[firstClickIndex].isRevealed = 1;
   return tiles;
 }
-
 void drawWindow() {
   SetConfigFlags(FLAG_WINDOW_HIGHDPI);
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -129,7 +129,6 @@ void drawWindow() {
   // SetWindowSize(width * 4 / 5, height * 4 / 5);
   // SetWindowPosition(width / 10, height / 10); //(x - 4/5x) / 2 = x / 10
 }
-void windowInfo();
 void drawMinesweeperGrid(int gridSizex, int gridSizey) {
   int screenWidth = GetScreenWidth();
   int screenHeight = GetScreenHeight();
@@ -240,11 +239,6 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
       ++i;
     }
   }
-}
-void renderStartMenu(int *horizontal, int *vertical, int *bombs) {
-  *horizontal = 9;
-  *vertical = 9;
-  *bombs = 10;
 }
 int mouseClickToIndex(Vector2 click, int gridSizex, int gridSizey) {
   int x = click.x;
@@ -357,7 +351,6 @@ int main() {
   srand(time(NULL));
   drawWindow();
   MinesweeperGame(9, 9, 10);
-
   CloseWindow();
   return 0;
 }
