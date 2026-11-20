@@ -22,7 +22,13 @@ typedef struct {
   int isFlagged;
   int neighboursMines;
 } Tile;
-Vector2 click;
+typedef struct {
+  int leftMargin;
+  int topMargin;
+  int cubeSize;
+  int width;
+  int height;
+} GridConfig;
 
 int isInArray(int num, int arr[], int len) {
   for (int i = 0; i < len; ++i) {
@@ -31,6 +37,31 @@ int isInArray(int num, int arr[], int len) {
     }
   }
   return 0;
+}
+GridConfig getGridConfig(int gridSizeX, int gridSizeY) {
+  int screenWidth = GetScreenWidth();
+  int screenHeight = GetScreenHeight();
+
+  int minMargin = 50;
+  int availableWidth = screenWidth - (2 * minMargin);
+  int availableHeight = screenHeight - (2 * minMargin);
+
+  // Calculate size of square
+  int cubeWidth = availableWidth / gridSizeX;
+  int cubeHeight = availableHeight / gridSizeY;
+  int cubeSize = (cubeWidth < cubeHeight) ? cubeWidth : cubeHeight;
+
+  // Calculate size of grid
+  int totalGridWidth = cubeSize * gridSizeX;
+  int totalGridHeight = cubeSize * gridSizeY;
+  // Init grid struct
+  GridConfig grid;
+  grid.leftMargin = (screenWidth - totalGridWidth) / 2;
+  grid.topMargin = 5 * (screenHeight - totalGridHeight) / 6;
+  grid.cubeSize = cubeSize;
+  grid.width = totalGridWidth;
+  grid.height = totalGridHeight;
+  return grid;
 }
 int *generateRandomBombsIndexessList(int horizontal, int vertical, int avoid,
                                      int quantity, int firstClickIndex) {
@@ -130,57 +161,19 @@ void drawWindow() {
   // SetWindowPosition(width / 10, height / 10); //(x - 4/5x) / 2 = x / 10
 }
 void drawMinesweeperGrid(int gridSizex, int gridSizey) {
-  int screenWidth = GetScreenWidth();
-  int screenHeight = GetScreenHeight();
-
-  int minMargin = 50;
-  int availableWidth = screenWidth - (2 * minMargin);
-  int availableHeight = screenHeight - (2 * minMargin);
-
-  // Calculate size of square
-  int cubeWidth = availableWidth / gridSizex;
-  int cubeHeight = availableHeight / gridSizey;
-  int cubeSize = (cubeWidth < cubeHeight) ? cubeWidth : cubeHeight;
-
-  // Calculate size of grid
-  int totalGridWidth = cubeSize * gridSizex;
-  int totalGridHeight = cubeSize * gridSizey;
-
-  // Center the grid in the window
-  int leftMargin = (screenWidth - totalGridWidth) / 2;
-  int topMargin = 5 * (screenHeight - totalGridHeight) / 6;
-
+  GridConfig cfg = getGridConfig(gridSizex, gridSizey);
   int i = 0;
   for (int y = 0; y < gridSizey; ++y) {
     for (int x = 0; x < gridSizex; ++x) {
-      int hor = x * cubeSize;
-      int ver = y * cubeSize;
-      DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
-                         BLACK);
+      int hor = x * cfg.cubeSize;
+      int ver = y * cfg.cubeSize;
+      DrawRectangleLines(cfg.leftMargin + hor, cfg.topMargin + ver,
+                         cfg.cubeSize, cfg.cubeSize, BLACK);
     }
   }
 }
 void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
-  int screenWidth = GetScreenWidth();
-  int screenHeight = GetScreenHeight();
-
-  int minMargin = 50;
-  int availableWidth = screenWidth - (2 * minMargin);
-  int availableHeight = screenHeight - (2 * minMargin);
-
-  // Calculate size of square
-  int cubeWidth = availableWidth / gridSizex;
-  int cubeHeight = availableHeight / gridSizey;
-  int cubeSize = (cubeWidth < cubeHeight) ? cubeWidth : cubeHeight;
-
-  // Calculate size of grid
-  int totalGridWidth = cubeSize * gridSizex;
-  int totalGridHeight = cubeSize * gridSizey;
-
-  // Center the grid in the window
-  int leftMargin = (screenWidth - totalGridWidth) / 2;
-  int topMargin = 5 * (screenHeight - totalGridHeight) / 6;
-
+  GridConfig cfg = getGridConfig(gridSizex, gridSizey);
   int i = 0;
 
   if (tiles == NULL) {
@@ -189,52 +182,52 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
 
   for (int y = 0; y < gridSizey; ++y) {
     for (int x = 0; x < gridSizex; ++x) {
-      int hor = x * cubeSize;
-      int ver = y * cubeSize;
-      int posX = leftMargin + hor;
-      int posY = topMargin + ver;
-      int fontSize = cubeSize / 2;
+      int hor = x * cfg.cubeSize;
+      int ver = y * cfg.cubeSize;
+      int posX = cfg.leftMargin + hor;
+      int posY = cfg.topMargin + ver;
+      int fontSize = cfg.cubeSize / 2;
 
       if (tiles[i].isFlagged) {
         const char *txt = "Flag";
         int textWidth = MeasureText(txt, fontSize);
-        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
-                      DARKGRAY);
+        DrawRectangle(cfg.leftMargin + hor, cfg.topMargin + ver, cfg.cubeSize,
+                      cfg.cubeSize, DARKGRAY);
 
-        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
-                           cubeSize, BLACK);
-        DrawText(txt, posX + (cubeSize - textWidth) / 2,
-                 posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+        DrawRectangleLines(cfg.leftMargin + hor, cfg.topMargin + ver,
+                           cfg.cubeSize, cfg.cubeSize, BLACK);
+        DrawText(txt, posX + (cfg.cubeSize - textWidth) / 2,
+                 posY + (cfg.cubeSize - fontSize) / 2, fontSize, BLACK);
       }
       if (tiles[i].isRevealed && tiles[i].isMine) {
         const char *txt = "BOMB";
         int textWidth = MeasureText(txt, fontSize / 2);
-        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
-                      DARKGRAY);
+        DrawRectangle(cfg.leftMargin + hor, cfg.topMargin + ver, cfg.cubeSize,
+                      cfg.cubeSize, DARKGRAY);
 
-        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
-                           cubeSize, BLACK);
-        DrawText(txt, posX + (cubeSize - textWidth) / 2,
-                 posY + (cubeSize - fontSize / 2) / 2, fontSize / 2, BLACK);
+        DrawRectangleLines(cfg.leftMargin + hor, cfg.topMargin + ver,
+                           cfg.cubeSize, cfg.cubeSize, BLACK);
+        DrawText(txt, posX + (cfg.cubeSize - textWidth) / 2,
+                 posY + (cfg.cubeSize - fontSize / 2) / 2, fontSize / 2, BLACK);
       }
       if (tiles[i].isRevealed && tiles[i].neighboursMines > 0) {
         const char *txt = TextFormat("%d", tiles[i].neighboursMines);
         int textWidth = MeasureText(txt, fontSize);
-        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
-                      DARKGRAY);
+        DrawRectangle(cfg.leftMargin + hor, cfg.topMargin + ver, cfg.cubeSize,
+                      cfg.cubeSize, DARKGRAY);
 
-        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
-                           cubeSize, BLACK);
-        DrawText(txt, posX + (cubeSize - textWidth) / 2,
-                 posY + (cubeSize - fontSize) / 2, fontSize, BLACK);
+        DrawRectangleLines(cfg.leftMargin + hor, cfg.topMargin + ver,
+                           cfg.cubeSize, cfg.cubeSize, BLACK);
+        DrawText(txt, posX + (cfg.cubeSize - textWidth) / 2,
+                 posY + (cfg.cubeSize - fontSize) / 2, fontSize, BLACK);
       }
       if (tiles[i].isRevealed && tiles[i].neighboursMines == 0 &&
           tiles[i].isMine == 0 && tiles[i].isFlagged == 0) {
 
-        DrawRectangle(leftMargin + hor, topMargin + ver, cubeSize, cubeSize,
-                      DARKGRAY);
-        DrawRectangleLines(leftMargin + hor, topMargin + ver, cubeSize,
-                           cubeSize, BLACK);
+        DrawRectangle(cfg.leftMargin + hor, cfg.topMargin + ver, cfg.cubeSize,
+                      cfg.cubeSize, DARKGRAY);
+        DrawRectangleLines(cfg.leftMargin + hor, cfg.topMargin + ver,
+                           cfg.cubeSize, cfg.cubeSize, BLACK);
       }
       ++i;
     }
@@ -243,31 +236,14 @@ void drawTiles(Tile *tiles, int gridSizex, int gridSizey, int bombs) {
 int mouseClickToIndex(Vector2 click, int gridSizex, int gridSizey) {
   int x = click.x;
   int y = click.y;
-  int screenWidth = GetScreenWidth();
-  int screenHeight = GetScreenHeight();
+  GridConfig cfg = getGridConfig(gridSizex, gridSizey);
 
-  int minMargin = 50;
-  int availableWidth = screenWidth - (2 * minMargin);
-  int availableHeight = screenHeight - (2 * minMargin);
-
-  // Calculate size of square
-  int cubeWidth = availableWidth / gridSizex;
-  int cubeHeight = availableHeight / gridSizey;
-  int cubeSize = (cubeWidth < cubeHeight) ? cubeWidth : cubeHeight;
-
-  // Calculate size of grid
-  int totalGridWidth = cubeSize * gridSizex;
-  int totalGridHeight = cubeSize * gridSizey;
-
-  // Center the grid in the window
-  int leftMargin = (screenWidth - totalGridWidth) / 2;
-  int topMargin = 5 * (screenHeight - totalGridHeight) / 6;
-  if (x < leftMargin || x > totalGridWidth + leftMargin || y < topMargin ||
-      y > topMargin + totalGridHeight) {
+  if (x < cfg.leftMargin || x > cfg.width + cfg.leftMargin ||
+      y < cfg.topMargin || y > cfg.topMargin + cfg.height) {
     return -1;
   }
-  x = (int)(x - leftMargin) / cubeSize;
-  y = (int)(y - topMargin) / cubeSize;
+  x = (int)(x - cfg.leftMargin) / cfg.cubeSize;
+  y = (int)(y - cfg.topMargin) / cfg.cubeSize;
   return ((y * gridSizex) + x);
 }
 void revealEmptyTiles(Tile *tiles, int x, int y, int gridSizex, int gridSizey) {
@@ -293,7 +269,9 @@ void revealEmptyTiles(Tile *tiles, int x, int y, int gridSizex, int gridSizey) {
 }
 Tile *HandleInput(int *firstClickIndex, Tile *tiles, int horizontalTiles,
                   int verticalTiles, int bombs) {
+  Vector2 click;
   if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+
     click = GetMousePosition();
     int clickIndex = mouseClickToIndex(click, horizontalTiles, verticalTiles);
     // checks if not out of bounds
